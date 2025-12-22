@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+sqlmodel
+pydantic
+pydantic-settings
+python-multipart
+python-dotenv
+passlib[bcrypt]
+python-jose[cryptography]
+alembic

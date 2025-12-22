@@ -1,0 +1,28 @@
+
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+Person(visitor, "Visitor", "Not logged in. Can browse and search published learning content.")
+Person(learner, "Registered User / Learner", "Logged-in user who learns and creates content.")
+Person(admin, "Admin", "Learner with additional review and moderation responsibilities.")
+
+System_Boundary(s1, "Learning Platform") {
+  System(system, "Learning Platform", "Web-based learning system for discovering, following, and creating structured learning content.")
+}
+
+System_Ext(email, "Email / Notification Service", "Sends all email messages on behalf of the platform, including login flows, verification links, and notification emails.")
+
+System_Ext(google, "Google OAuth", "Authenticates users with their personal Gmail accounts, sending verification and login messages via the email service.")
+
+System_Ext(company, "Company SSO", "Authenticates users with their corporate accounts, sending verification and login messages via the email service.")
+
+Rel(visitor, system, "Browse, search, view content", "HTTPS/Web")
+Rel(learner, system, "Enroll, create content, review, manage My Learnings & Accomplishments", "HTTPS/Web")
+Rel(admin, system, "Review submissions and deletion requests, moderate reviews", "HTTPS/Web")
+
+Rel(system, email, "Sends platform notifications\n(approvals, rejections, updates)", "SMTP / API")
+
+Rel(email, google, "Sends login/verification emails", "SMTP")
+Rel(email, company, "Sends login/verification emails", "SMTP")
+
+@enduml

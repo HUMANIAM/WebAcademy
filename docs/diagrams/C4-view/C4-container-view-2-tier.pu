@@ -1,0 +1,25 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(user, "User", "Visitor, learner, or admin using a web browser.")
+
+System_Boundary(s1, "Learning Platform") {
+  Container(web, "Web Frontend", "Browser-based UI", "Delivers the user interface, handles navigation, calls the backend.")
+  Container(backend, "Backend Application", "Server application", "Handles authentication callbacks, business logic, persistence, and simple async jobs (notifications, content state changes). Data is stored using an internal database instance.")
+}
+
+System_Ext(email, "Email / Notification Service", "Sends login-related emails and platform notifications.")
+System_Ext(google, "Google OAuth", "Authenticates users with their personal Gmail accounts.")
+System_Ext(company, "Company SSO", "Authenticates users with their corporate accounts.")
+
+Rel(user, web, "Uses via browser", "HTTPS")
+Rel(web, backend, "Calls APIs, submits forms", "HTTPS/JSON")
+
+Rel(web, google, "Redirects for login", "HTTPS/OAuth2")
+Rel(web, company, "Redirects for login", "HTTPS/OAuth2/SAML")
+
+Rel(backend, email, "Sends platform notifications (approvals, rejections, updates)", "SMTP/API")
+Rel(google, email, "Sends login/verification emails", "SMTP")
+Rel(company, email, "Sends login/verification emails", "SMTP")
+
+@enduml

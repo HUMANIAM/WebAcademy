@@ -1,0 +1,28 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(user, "User", "Visitor, learner, or admin using a web browser.")
+
+System_Boundary(s1, "Learning Platform") {
+  Container(web, "Web Frontend", "SPA or server-rendered web app", "Implements the UI, authentication flows, and calls the backend API.")
+  Container(api, "Backend API", "Server application", "Exposes REST/JSON endpoints for content, reviews, enrollments, and workflows. Performs business logic and triggers async tasks.")
+  ContainerDb(db, "Application Database", "Relational DB (e.g. PostgreSQL)", "Stores users, tracks, resources, skills, reviews, enrollments, accomplishments, and content states.")
+}
+
+System_Ext(email, "Email / Notification Service", "Sends login-related emails and platform notifications.")
+System_Ext(google, "Google OAuth", "Authenticates users with their personal Gmail accounts.")
+System_Ext(company, "Company SSO", "Authenticates users with their corporate accounts.")
+
+Rel(user, web, "Uses via browser", "HTTPS")
+Rel(web, api, "Calls API endpoints", "HTTPS/JSON")
+
+Rel(web, google, "Redirects for login", "HTTPS/OAuth2")
+Rel(web, company, "Redirects for login", "HTTPS/OAuth2/SAML")
+
+Rel(api, db, "Reads/writes application data", "SQL/TCP")
+Rel(api, email, "Sends platform notifications (approvals, rejections, updates)", "SMTP/API")
+
+Rel(google, email, "Sends login/verification emails", "SMTP")
+Rel(company, email, "Sends login/verification emails", "SMTP")
+
+@enduml

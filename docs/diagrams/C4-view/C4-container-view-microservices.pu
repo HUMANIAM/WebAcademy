@@ -1,0 +1,38 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+Person(user, "User", "Visitor, learner, or admin using a web browser.")
+
+System_Boundary(s1, "Learning Platform") {
+  Container(web, "Web Frontend", "SPA or web app", "Provides the user interface, handles auth flows, calls the backend API.")
+  Container(api, "Backend API", "Stateless server application", "Handles synchronous requests: content browsing, enrollment, creation, review submission, triggers async jobs.")
+  Container(worker, "Background Worker", "Async job processor", "Processes queued jobs such as sending notifications, applying content state transitions, and heavy non-blocking tasks.")
+  ContainerDb(db, "Application Database", "Relational DB (e.g. PostgreSQL)", "Stores users, content, reviews, enrollments, accomplishments, and workflow states.")
+  Container(cache, "Cache", "In-memory store (e.g. Redis)", "Caches frequently accessed data (popular tracks, skills, user sessions) for performance.")
+  Container(store, "Object Storage", "Blob storage (e.g. S3)", "Stores images and other static assets for learning resources and tracks.")
+  Container(queue, "Message Queue", "Job/Message broker (e.g. RabbitMQ, SQS)", "Buffers asynchronous jobs (notifications, workflows) between API and background workers.")
+}
+
+System_Ext(email, "Email / Notification Service", "Sends login-related emails and platform notifications.")
+System_Ext(google, "Google OAuth", "Authenticates users with their personal Gmail accounts.")
+System_Ext(company, "Company SSO", "Authenticates users with their corporate accounts.")
+
+Rel(user, web, "Uses via browser", "HTTPS")
+
+Rel(web, api, "Calls API endpoints", "HTTPS/JSON")
+Rel(web, google, "Redirects for login", "HTTPS/OAuth2")
+Rel(web, company, "Redirects for login", "HTTPS/OAuth2/SAML")
+
+Rel(api, db, "Reads/writes application data", "SQL/TCP")
+Rel(api, cache, "Reads/writes cached data", "TCP")
+Rel(api, store, "Reads/writes images and static assets", "HTTPS/S3 API")
+Rel(api, queue, "Enqueues async jobs (notifications, state changes)", "AMQP/HTTPS")
+
+Rel(worker, queue, "Consumes async jobs", "AMQP/HTTPS")
+Rel(worker, db, "Updates workflow-related data", "SQL/TCP")
+Rel(worker, email, "Sends platform notifications (approvals, rejections, updates)", "SMTP/API")
+
+Rel(google, email, "Sends login/verification emails", "SMTP")
+Rel(company, email, "Sends login/verification emails", "SMTP")
+
+@enduml

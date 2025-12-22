@@ -1,0 +1,130 @@
+@startuml
+!theme plain
+
+entity "User" as User {
+    * id : UUID
+    --
+    name : string
+    email : string
+    password_hash : string
+    role : enum
+    created_at : timestamp
+    updated_at : timestamp
+}
+
+entity "Skill" as Skill {
+    * id : UUID
+    --
+    name : string
+    description : text
+}
+
+entity "LearningResource" as Resource {
+    * id : UUID
+    --
+    title : string
+    description : text
+    image_url : string
+    type : enum
+    difficulty_level : enum
+    estimated_time : int
+    creator_user_id : UUID
+    state : enum
+    created_at : timestamp
+    updated_at : timestamp
+}
+
+entity "LearningTrack" as Track {
+    * id : UUID
+    --
+    title : string
+    description : text
+    image_url : string
+    difficulty_level : enum
+    track_type : enum
+    estimated_time : int
+    creator_user_id : UUID
+    state : enum
+    created_at : timestamp
+    updated_at : timestamp
+}
+
+entity "TrackResource" as TrackResource {
+    * id : UUID
+    --
+    track_id : UUID
+    resource_id : UUID
+    level : enum
+    position : int
+}
+
+entity "Review" as Review {
+    * id : UUID
+    --
+    user_id : UUID
+    target_type : enum
+    target_id : UUID
+    rating : int
+    comment : text
+    created_at : timestamp
+}
+
+entity "Enrollment" as Enrollment {
+    * id : UUID
+    --
+    user_id : UUID
+    target_type : enum
+    target_id : UUID
+    created_at : timestamp
+}
+
+entity "Accomplishment" as Accomplishment {
+    * id : UUID
+    --
+    user_id : UUID
+    target_type : enum
+    target_id : UUID
+    completed_at : timestamp
+}
+
+entity "ContentState" as ContentState {
+    * id : UUID
+    --
+    content_id : UUID
+    content_type : enum
+    state : enum
+    changed_by : UUID
+    changed_at : timestamp
+    message : text
+}
+
+' -------------------------
+' Relationships with Cardinality
+' -------------------------
+
+User ||--o{ Resource : "creates"
+User ||--o{ Track : "creates"
+User ||--o{ Review : "writes"
+User ||--o{ Enrollment : "enrolls in"
+User ||--o{ Accomplishment : "completes"
+User ||--o{ ContentState : "changes state"
+
+Resource }o--o{ Skill : "tagged with"
+Track }o--o{ Skill : "teaches"
+
+Track ||--o{ TrackResource : "has"
+Resource ||--o{ TrackResource : "included in"
+
+Review }o--|| Resource : "reviews (resource)"
+Review }o--|| Track : "reviews (track)"
+
+Enrollment }o--|| Resource : "enrolls in (resource)"
+Enrollment }o--|| Track : "enrolls in (track)"
+
+Accomplishment }o--|| Resource : "completed (resource)"
+Accomplishment }o--|| Track : "completed (track)"
+
+ContentState }o--|| Resource : "state of"
+ContentState }o--|| Track : "state of"
+
+@enduml

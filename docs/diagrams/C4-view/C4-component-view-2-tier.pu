@@ -1,0 +1,53 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+Container(backend, "Backend Application", "Server application")
+
+Person(user, "User")
+
+System_Ext(email, "Email / Notification Service")
+System_Ext(google, "Google OAuth")
+System_Ext(company, "Company SSO")
+
+System_Boundary(s1, "Backend Components") {
+
+  Component(api, "API Layer", "Controllers/Handlers","Receives HTTP requests, validates input, authenticates user sessions, routes calls to services.")
+
+  Component(auth, "Auth Module", "OAuth/SAML Adapter","Handles callbacks from Google and Company SSO. Exchanges tokens, validates identity, issues platform tokens.")
+
+  Component(learningSvc, "Learning Content Service", "Business Service","Manages Learning Resources, Learning Tracks, search filters, and browsing.")
+
+  Component(userSvc, "User Profile & Progress Service", "Business Service","Tracks progress, enrollments, completions, and user profiles.")
+
+  Component(reviewSvc, "Review Service", "Business Service","Stores and retrieves reviews, ratings, comments.")
+
+  Component(workflow, "Creator Workflow Service", "Business Service","Handles draft → review → publish lifecycle. Triggers notifications for approvals.")
+
+  Component(notify, "Notification Adapter", "SMTP/API Client","Sends emails and internal notifications via external email service.")
+
+  Component(repo, "Persistence Layer", "ORM/Repository","Provides CRUD access to internal database tables. Used by all business services.")
+
+  Component(jobs, "Async Executor", "Background Worker (lightweight)","Executes simple async tasks: sending notifications, updating content states, clearing expired tokens.")
+}
+
+Rel(user, api, "Makes requests via browser", "HTTPS")
+Rel(api, auth, "Auth callbacks / token validation", "HTTPS")
+Rel(api, learningSvc, "Calls service methods")
+Rel(api, userSvc, "Calls service methods")
+Rel(api, reviewSvc, "Calls service methods")
+Rel(api, workflow, "Calls service methods")
+
+Rel(learningSvc, repo, "Reads/writes")
+Rel(userSvc, repo, "Reads/writes")
+Rel(reviewSvc, repo, "Reads/writes")
+Rel(workflow, repo, "Reads/writes")
+
+Rel(workflow, notify, "Triggers notifications")
+Rel(jobs, notify, "Sends async notifications")
+
+Rel(auth, google, "OAuth flow", "HTTPS")
+Rel(auth, company, "SAML/OAuth2 flow", "HTTPS")
+
+Rel(notify, email, "Sends email notifications", "SMTP")
+
+@enduml
