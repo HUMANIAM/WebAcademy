@@ -28,3 +28,6 @@ dist/
 *.swo
 todo
 site/frontendfigma/build/
+
+doc_to_do.md
+
