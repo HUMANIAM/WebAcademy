@@ -1,0 +1,84 @@
+@startuml problem-definition-workflow
+title Current workflow (AS-IS) — Course request via email → payment → invoice → completion evidence
+
+skinparam ActivityFontSize 16
+skinparam ActivityFontStyle bold
+skinparam ActivityBorderWidth 2
+skinparam BoxFontSize 20
+skinparam NoteFontSize 14
+skinparam NoteBorderWidth 2
+skinparam defaultFontName Arial
+skinparam defaultFontColor #000000
+skinparam ArrowColor #333333
+
+<style>
+activity {
+  LineColor #333333
+  BackgroundColor #FFFFFF
+}
+activityText {
+  FontColor #000000
+}
+</style>
+
+start
+
+:<font color=green><b>Employee</b></font>: Compose request email (to WebAcademy mailbox);
+if (CC manager?) then (yes)
+  :CC manager (optional);
+endif
+:Send email;
+
+:<font color=orange><b>WebAcademy</b></font>: Receive request email;
+:<font color=orange><b>WebAcademy</b></font>: Review request (manual);
+:<font color=orange><b>WebAcademy</b></font>: Reply approval email to Employee;
+
+:<font color=orange><b>WebAcademy</b></font>: Schedule offline payment appointment (Employee + Finance);
+note right
+Scheduling channel today may be email / calendar / chat.
+System goal: create a single record + timeline.
+end note
+
+:<font color=green><b>Employee</b></font>: Attend offline appointment;
+
+:<font color=blue><b>Finance</b></font>: Attend offline appointment;
+:<font color=blue><b>Finance</b></font>: Enter payment details in Coursera/Udemy;
+note right
+Payment is executed by Finance directly in the platform.
+end note
+
+:<font color=orange><b>WebAcademy</b></font>: Confirm enrollment/payment completed? (often implicitly);
+note right
+Often no single place proving "paid" vs "pending".
+end note
+
+:<font color=green><b>Employee</b></font>: Receive invoice (from Coursera/Udemy);
+:<font color=green><b>Employee</b></font>: Email invoice to WebAcademy mailbox;
+
+:<font color=orange><b>WebAcademy</b></font>: Receive invoice email;
+if (Invoice handling method?) then (Forward to Finance)
+  :<font color=orange><b>WebAcademy</b></font>: Forward invoice email to Finance;
+  :<font color=blue><b>Finance</b></font>: Process internally (???);
+  note right
+Unknown: Is Finance only archiving invoice? Or creating reimbursement? Or booking cost center?
+end note
+else (AFAS reimbursement)
+  :<font color=orange><b>WebAcademy</b></font>: Create reimbursement in AFAS (???);
+  note right
+Unknown: Is reimbursement always used? Who submits it: WebAcademy or Employee?
+end note
+endif
+
+:<font color=green><b>Employee</b></font>: Finish course;
+:<font color=green><b>Employee</b></font>: Email certificate/completion evidence to WebAcademy mailbox;
+
+:<font color=orange><b>WebAcademy</b></font>: Receive certificate email;
+:<font color=orange><b>WebAcademy</b></font>: Store certificate (???);
+:<font color=orange><b>WebAcademy</b></font>: Mark completion tracked (???);
+note right
+Unknown today: Where certificates live (mailbox? sharepoint? drive?) And how completion is tracked (if at all).
+System goal: attach certificate to the request record.
+end note
+
+stop
+@enduml

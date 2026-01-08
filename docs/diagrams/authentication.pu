@@ -1,0 +1,57 @@
+@startuml
+title WebAcademy Auth (SSO) - Stateless JWT Session Cookie (No Session Storage)
+
+actor User
+participant "Browser (Frontend)" as FE
+participant "Identity Provider (IdP)" as IdP
+participant "WebAcademy Backend" as BE
+database "DB" as DB
+
+== Login ==
+User -> FE: Click "Sign in with Company"
+FE -> IdP: Redirect to IdP login
+
+IdP -> User: Login + MFA
+User -> IdP: Credentials + MFA approval
+
+IdP -> FE: Redirect back with AUTHORIZATION CODE
+
+FE -> BE: POST /auth/callback (code)
+
+BE -> IdP: Exchange code for tokens (token endpoint)
+IdP --> BE: id_token (+ optionally access_token)
+
+BE -> BE: Verify id_token signature + issuer + audience + expiry
+BE -> BE: Extract claims (stable user id, email, name, roles)
+
+BE -> DB: Upsert users row
+DB --> BE: user_id
+
+BE -> BE: Create WebAcademy JWT (payload: user_id, role, expiry)
+BE --> FE: Set-Cookie wa_session_jwt=... (HttpOnly, Secure)
+
+== API calls ==
+FE -> BE: GET /my-requests (Cookie: wa_session_jwt=...)
+BE -> BE: Verify wa_session_jwt signature + expiry
+
+alt JWT valid
+  BE -> DB: Query data by user_id (from JWT)
+  DB --> BE: data
+  BE --> FE: 200 OK
+else JWT invalid/expired
+  BE --> FE: 401 Unauthorized
+  FE -> IdP: Redirect to login again
+end
+
+== Logout ==
+User -> FE: Click Logout
+FE -> BE: POST /logout (Cookie: wa_session_jwt=...)
+BE --> FE: Clear cookie (client-side logout)
+note right of BE
+In stateless JWT sessions, logout mainly clears the cookie.
+Without server storage, immediate revocation is not guaranteed
+until JWT expiry.
+end note
+
+
+@enduml

@@ -1,0 +1,71 @@
+@startuml
+title Learning Resource Request → Approval → Payment Setup → Enrollment Proof → Finance Verification
+
+actor Learner
+participant "WebAcademy Platform" as Platform
+participant Resource
+participant "Academy Management" as Academy
+participant Finance
+
+== Request ==
+Learner -> Platform: Request paid resource (resource_id, message)
+activate Platform
+Platform -> Platform: Create learning_request\napproval_state=WAITING_APPROVAL
+Platform ->> Academy: Notify new request (async)\n(request_id)
+deactivate Platform
+
+== Approval ==
+alt Academy rejects
+  Academy -> Platform: Reject(request_id, reason)
+  activate Platform
+  Platform -> Platform: approval_state=REJECTED
+  Platform -> Learner: Notify rejection + reason
+  deactivate Platform
+else Academy approves
+  Academy -> Platform: Approve(request_id, notes)
+  activate Platform
+  Platform -> Platform: approval_state=APPROVED\nui_status=WAITING_FINANCE_ACTION (Need setup)
+  Platform ->> Finance: Notify payment setup needed (async)\n(request_id, method_hint)
+  deactivate Platform
+
+  == Finance setup ==
+  Finance -> Platform: Provide payment setup\n(method, instructions, code/link)
+  activate Platform
+  Platform -> Platform: finance_setup_done_at=now\nui_status=WAITING_LEARNER_ACTION
+  Platform -> Learner: Show instructions / code / payment link
+  deactivate Platform
+
+  == Learner enrollment ==
+  Learner -> Resource: Enroll / Redeem code / Pay
+  Resource --> Learner: Enrollment confirmation
+
+  Learner -> Platform: Submit proof (s3_doc/link, comment)
+  activate Platform
+  Platform -> Platform: learner_proof_submitted_at=now\nui_status=WAITING_FINANCE_ACTION (Need verification)
+  Platform ->> Finance: Notify verification needed (async)\n(request_id, proof_ref)
+  deactivate Platform
+
+  == Finance verification ==
+  alt Finance requests more info
+    Finance -> Platform: Request clarification (comment)
+    activate Platform
+    Platform -> Learner: Ask for missing/clearer proof
+    Platform -> Platform: ui_status=WAITING_LEARNER_ACTION
+    deactivate Platform
+
+    Learner -> Platform: Submit updated proof
+    activate Platform
+    Platform -> Platform: learner_proof_submitted_at=now\nui_status=WAITING_FINANCE_ACTION (Need verification)
+    Platform ->> Finance: Notify verification needed (async)
+    deactivate Platform
+
+  else Finance confirms
+    Finance -> Platform: Confirm verification
+    activate Platform
+    Platform -> Platform: finance_verified_at=now\nui_status=VERIFIED (Closed)
+    Platform -> Learner: Verified / Completed enrollment process
+    deactivate Platform
+  end
+end
+
+@enduml

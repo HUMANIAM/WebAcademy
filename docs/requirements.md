@@ -1,200 +1,276 @@
-# 1. Overall System Description
+# outline
+- [Problem Definition](#1-problem-definition)
+- [Overall System Description](#2-overall-system-description)
+- [Scope (v1) + Non-Goals (v1)](#3-scope-v1--non-goals-v1)
+- [User Roles](#4-roles) 
+- [Concepts](#5-concepts)
+- [Personal Workspaces](#6-personal-workspaces)
+- [Authentication & Operation](#7-authentication--operation)
+- [Data Schema](#8-data-schema)
+- [Frontend](#9-frontend)
 
-The platform is a web-based learning environment where users can discover, follow, and create structured learning content. It serves three types of users: visitors, learners, and administrators and provides a unified place to explore materials, track learning progress, and publish user-generated content.
+# 1. Problem Definition
 
-The system is built around two core content types:
+Today, employee learning requests are managed through email threads and offline coordination. Each request follows a similar path request, approval, payment setup, and completion proof but the details live across separate inboxes. As a result, there isn’t one place where you can see the complete history and current status of a request end to end.
 
-- **Learning Resources**: individual items such as courses, books, articles, projects, and videos.  
-- **Learning Tracks**: curated learning paths that combine multiple resources into organized levels.
+### Current Workflow 
 
-Users can browse all published content, enroll in tracks or resources, and maintain a personalized space through **My Learnings**. A review system allows learners to rate and comment on content, helping others evaluate its quality.
-
-Registered users can contribute new learning resources and tracks. They have full control over drafts, while publishing and deletion follow an admin approval workflow to maintain platform quality. Both creators and administrators receive notifications when content moves between states (draft, review, published/review).
-
-Administrators review user submissions, handle deletion requests, and moderate reviews when necessary. They do not modify or override user-created content; their role is solely to ensure that public content meets the platform’s quality and relevance standards.
-
-The platform supports skill tagging, search, filtering, and content sharing, enabling users to quickly find material aligned with their learning goals. A structured skill model connects resources and tracks to clear learning outcomes, improving content discovery and guidance.
-
-In essence, the system enables users to learn, contribute, and navigate knowledge through organized, user-driven content supported by lightweight moderation and progress tracking.
+![Problem Definition](./diagrams/problem-definition.png)
 
 
+### Key Problems
 
-Roles
------
-* Base Capabilities (applies to all roles)
-    * Browse learning tracks and learning resources
-    * Search and filter
-    * View details, reviews, and learner counts
-    * Share tracks or resources via public links
+1- No single source of truth: requests, approvals, payments, invoices, certificates, and follow-ups live in emails and personal folders.
 
-* Visitor (Not Logged In)
-    * A Visitor has only the Base Capabilities.
+2- Hard to track status: people cannot easily answer “where is this request now?” without chasing messages.
 
-* Registered User
-    * A Registered User has all Visitor capabilities, plus:
-        * Enroll in learning tracks or resources
-        * Unenroll (remove items from “My Learnings”)
-        * Create new learning tracks or resources (requires admin approval to publish)
-        * Edit their own content
-        * Request deletion of their published content (requires admin approval)
-        * Rate and comment on items they created or enrolled in
-        * Mark enrolled tracks or resources as completed
-        * Receive in-app and email notifications
-        * Access “My Learnings”
-        * Access “Accomplishments”
-        * Update their profile information (name, email, avatar)
+3- Weak traceability: completion proof (certificate) is not connected to the original request, so retrieving it later is painful.
 
-* Admin
-    * An Admin has all Registered User capabilities, plus:
-        * Review user-submitted content and either approve it or request changes.
-        * Review user delete requests and either approve, reject, or ask the content owner for clarification.
-        * Create, edit, and delete their own learning content without approval.
-        * Request modifications from content owners when quality or policy issues are found.
+4- Slow and repetitive work: the same information is requested and shared multiple times across Academy, Finance, managers, and employees.
 
-Concepts
---------
-* User
-* Learning Track
-* Learning Resource
-* Review
-* Enrollment
-* Notification
-* Accomplishment
-* Skill
+5- Knowledge doesn’t spread: there is no centralized place for employees to share reusable learning paths (e.g., “DevOps Engineer”, “Test Engineer”) or share learnings/experiences from client work.
 
-Entities
--------
+# 2. Overall System Description
+
+WebAcademy is a web platform that centralizes two things in one place:
+
+1) **Learning Request Lifecycle**: Employees request **paid or academy-managed learning resources**. The Academy reviews/approves the request, Finance confirms payment (invoice/payment), and the request remains trackable as a single record. Completion proof (e.g., certificate) must be attached to mark completion for paid resources and linked back to the original request.
+
+2) **Learning Content Hub**: Employees and the Academy can discover and share structured learning content (resources and learning paths) so knowledge and experiences become reusable across employees.
+
+The platform organizes learning content into two types:
+
+- **Learning Resources**: single learning items such as courses, books, articles, projects, and videos.
+- **Learning Tracks**: structured learning paths that group multiple resources into ordered levels (e.g., “DevOps Engineer”, “Test Engineer”). Tracks are for guidance and planning; **requests and payments apply only to individual resources**, not to tracks as a unit.
+
+## 3. Scope (v1) + Non-Goals (v1)
+
+### Scope (v1)
+
+Version 1 focuses on:
+- Automating the **Learning Request** process for **paid/academy-managed learning resources** to replace email-based coordination.
+- Enabling employees and the Academy to **create and share learning content** (resources and tracks).
+- Giving employees a centralized place to **track their learnings and activity** through dedicated workspaces.
+
+### Non-Goals (v1)
+
+Out of scope for v1:
+- Comments and discussions
+- Reviews and ratings
+- Blogs / long-form articles
+- Built-in notifications (in-app or email)
+
+## 4. Roles
+
+WebAcademy platform has three roles:
+- **Employee**
+- **Academy**
+- **Finance**
+
+### Base Capabilities (applies to all roles)
+- Browse published **Learning Tracks** and **Learning Resources**
+- Search and filter content
+- View content details
+- Share links to content
+
+---
+
+### Employee
+An Employee has all Base Capabilities, plus:
+- Manage **My Learnings** (Saved / In Progress / Completed / Dropped)
+- Create and manage **Learning Requests** for **paid/academy-managed resources only**
+- Track their requests in **My Requests**
+- Create and edit their own **draft** learning content (resources/tracks)
+- Submit their content for review and track it in **My Submissions**
+
+---
+
+### Academy
+The Academy has all Base Capabilities, plus:
+- Review and process employee **Learning Requests** (approve / decline)
+- Review user **Submissions** (resources/tracks) and decide: publish / decline
+- Create, edit, and publish Academy-owned learning content
+
+---
+
+### Finance
+Finance has all Base Capabilities, plus:
+- View approved **Learning Requests** that require payment handling
+- Provide and manage **payment setup** for a request (e.g., gift code / virtual card)
+- Record/confirm payment-related proof linked to a request
+
+## 5. Concepts
+
 ### User
+A person who uses WebAcademy. Every user has exactly one role that defines what they can do:
 
-```json
-{
-    "id": "UUID",
-    "name": "string",
-    "email": "string (unique)",
-    "password_hash": "string",
-    "role": "enum('registered', 'admin')",
-    "created_at": "timestamp",
-    "updated_at": "timestamp"
-}
-```
+- **Employee**: browses content, saves tracks/resources to *My Learnings*, requests paid resources, follows up their requests, and shares learnings/feedback.
+- **Academy**: curates and publishes content, reviews learning requests, and communicates outcomes to employees.
+- **Finance**: provides payment setup for approved learning requests andconfirms payment status for approved learning requests (based on invoice/payment evidence).
 
-### Learning Track
-
-```json
-{
-    "id": "UUID",
-    "title": "string",
-    "description": "text",
-    "image_url": "string (optional)",
-    "difficulty_level": "enum('beginner', 'intermediate', 'advanced')",
-    "track_type": "enum('predefined', 'user_defined')",
-    "estimated_time": "integer (optional; or computed)",
-    "creator_user_id": "UUID (FK → User)",
-    "state": "enum('draft', 'pending_review', 'published', 'rejected', 'pending_delete', 'deleted')"
-    "created_at": "timestamp"
-    "updated_at": "timestamp"
-}
-```
+> Note: a **Manager/Approver** role may be introduced later as an optional approval step before the Academy review.
 
 ### Learning Resource
+A single learning item (e.g., course, book, article, project, video).  
+A resource may be **free** or **paid/academy-managed**.
 
-```json
-{
-    "id": "UUID",
-    "title": "string",
-    "description": "text",
-    "image_url": "string (optional)",
-    "type": "enum('course', 'book', 'project', 'article', 'talk')",
-    "difficulty_level": "enum('beginner', 'intermediate', 'advanced')",
-    "estimated_time": "integer  // in hours",
-    "creator_user_id": "UUID (FK → User)",
-    "state": "enum('draft', 'pending_review', 'published', 'rejected', 'pending_delete', 'deleted')",
-    "created_at": "timestamp",
-    "updated_at": "timestamp"
-}
-```
+### Learning Track
+A curated learning path that groups multiple resources into ordered levels.  
+Tracks are for guidance and planning. **Tracks are not paid or requested as a unit.**
 
-### skill
+### Skill
+A standardized label that describes what a resource or track teaches (e.g., “Docker”, “Kubernetes”, “Testing”, “SQL”).
 
-```json
-{
-    "id": "UUID",
-    "name": "string (unique)",
-    "description": "text (optional)",
-    "created_at": "timestamp",
-    "updated_at": "timestamp"
-}
-```
+Skills exist to improve search and discovery (find learning by skill).
+A resource/track can have multiple skills. Skills can be selected from existing ones and (optionally) new skills can be proposed.
 
-### Review
-
-```json
-{
-    "id": "UUID"
-    "user_id": "UUID (FK → User)"
-    "target_type": "enum('track', 'resource')"
-    "target_id": "UUID"  // refers to LearningTrack or LearningResource
-    "rating": "integer" (1–5)
-    "comment": "text"
-    "created_at": "timestamp"
-}
-```
-### Enrollment
-
-```json
-{
-    "id: UUID"
-    "user_id": "UUID" (FK → User)
-    "target_type": "enum('track', 'resource')"
-    "target_id: "UUID"
-    "created_at": "timestamp"
-}
-```
+### Learning Request
+A traceable record created to request **a single paid/academy-managed resource**.  
+It links the employee, the target resource, academy review, finance confirmation, and any related attachments (e.g., invoice, certificate) when applicable.
 
 ### Notification
+A message delivered to a user to inform them that something relevant happened or that they need to take action.
 
-```json
-{
-    "id": "UUID"
-    "user_id": "UUID" (FK → User)
-    "type": "enum(
-        'content_approved',
-        'content_rejected',
-        'delete_request_approved',
-        'delete_request_rejected',
-        'new_published_content',
-        'new_interaction'
-    )"
-    "payload": "jsonb"  // contains details
-    "is_read": "boolean"
-    "created_at": "timestamp"
-}
-```
+Notifications are used to reduce back-and-forth emails and to make the system “self-driving” (users know what’s next without asking).
 
-### Accomplishment
+Examples:
+- Employee: “Your request for *{Resource}* was approved by Academy.”
+- Academy: “New learning request submitted by *{Employee}*.”
+- Finance: “Invoice uploaded for request *{X}*. payment confirmation needed.”
+- Employee: “Finance confirmed payment for *{Resource}*.”
 
-```json
-{
-    "id": "UUID"
-    "user_id": "UUID" (FK → User)
-    "target_type": "enum('track', 'resource')"
-    "target_id": "UUID"
-    "completed_at": "timestamp"
-}
-```
+### Submission
+A record representing user-created content (resource or track) going through the publishing workflow: Draft → Under Review → Published / Declined.
 
-### Content State
+### My Learning Item
+An entry in an employee’s personal learning space representing a resource or track they saved or are actively learning, with progress status (Saved / In Progress / Completed / Dropped).
 
-```json
-{
-    "id": "UUID",
-    "content_id": "UUID",
-    "content_type": "enum('track', 'resource')",
-    "state": "enum('draft', 'pending_review', 'published', 'rejected', 'pending_delete', 'deleted')",
-    "changed_by": "UUID",
-    "changed_at": "timestamp",
-    "message": "text (optional)"
-}
-```
-### Entity Relationship Diagram
-![ER diagram](./diagrams/ER.png)
+### Evidence / Certificate (optional)
+A file or link that proves completion of a learning resource (e.g., certificate).  
+Evidence can be attached to the learning item and/or linked to the original learning request when applicable.
+
+### Review
+A rating and/or comment on a published resource or track to help others judge quality.
+
+
+## 6. Personal Workspaces
+
+The platform provides three distinct user workspaces. Each workspace represents a different concept and has its own statuses.  
+A single item may appear in more than one workspace, but **each workspace remains the source of truth for its own concept**.
+
+### 1) My Requests (Learning Requests)
+Covers the employee’s **paid / academy-managed resource requests** end-to-end.
+
+- Scope: **requests for individual resources only** (not tracks).
+- Purpose: visibility on the request lifecycle across **Academy** and **Finance**.
+
+The lifecycle is illustrated in the sequence diagram:
+
+![Learning request workflow sequence](./diagrams/learning-request-workflow-sequence.png)
+
+#### Statuses
+
+A **Learning Request** is always in exactly one status.  
+Statuses are designed to reflect the **next actor / blocker** (what needs to happen next).
+
+**Status Enum**
+- **WAITING_ACADEMY_APPROVAL**
+  - Meaning: request submitted; Academy must approve or reject.
+  - Next actor: Academy
+
+- **REJECTED**
+  - Meaning: Academy rejected the request (with reason).
+  - Next actor: None (terminal)
+
+- **WAITING_FINANCE_SETUP**
+  - Meaning: Academy approved; Finance must provide a payment setup (gift code / virtual card instructions).
+  - Next actor: Finance
+
+- **WAITING_LEARNER_ACTION**
+  - Meaning: Finance provided payment setup **or** Finance requested clarification; learner must act (redeem/pay and/or upload missing/clearer proof).
+  - Next actor: Employee
+
+- **WAITING_FINANCE_VERIFICATION**
+  - Meaning: learner submitted proof; Finance must verify/confirm.
+  - Next actor: Finance
+
+- **VERIFIED**
+  - Meaning: Finance confirmed verification; request is closed.
+  - Next actor: None (terminal)
+
+**Allowed Transitions (high level)**
+- WAITING_ACADEMY_APPROVAL → REJECTED
+- WAITING_ACADEMY_APPROVAL → WAITING_FINANCE_SETUP
+- WAITING_FINANCE_SETUP → WAITING_LEARNER_ACTION
+- WAITING_LEARNER_ACTION → WAITING_FINANCE_VERIFICATION
+- WAITING_FINANCE_VERIFICATION → WAITING_LEARNER_ACTION *(if Finance requests more info)*
+- WAITING_FINANCE_VERIFICATION → VERIFIED
+
+### 2) My Submissions (Content Publishing Workflow)
+Covers learning content a user **created** (resources or tracks) and its publishing state.
+
+- Scope: user-authored resources and tracks.
+- Purpose: manage drafts and follow the publishing outcome.
+
+#### Statuses
+- **Draft**: private to the creator; not visible to others.
+- **Under Review**: submitted for Academy review; not publicly visible.
+- **Published**: visible in the content hub.
+- **Declined**: not published; includes a reason/feedback.
+
+#### Publishing Rules
+- **Employee-created content**
+  - Starts as **Draft**.
+  - When submitted, moves to **Under Review**.
+  - Academy decides: **Published** or **Declined**.
+
+- **Academy-created content**
+  - Can be **Published directly** (no review required).
+
+- **Academy feedback / changes**
+  - Academy does **not edit employee content directly**.
+  - If changes are needed, Academy returns the submission to the creator (still not published) with feedback, and the creator resubmits for review.
+
+### 3) My Learnings (Personal Learning Progress)
+covers what the user plans to learn or is learning, independent of the request workflow.
+
+- Scope: saved resources + saved tracks, and progress per item.
+- Purpose: personal learning backlog + progress tracking.
+- Statuses:
+  - Saved
+  - In Progress
+  - Completed
+  - Dropped
+
+## 7. Authentication & Operation
+
+### Authentication
+- WebAcademy supports two sign-in modes:
+  - **Company SSO** for active employees. [Authentication Diagram](./diagrams/authentication.png)
+  - **Alumni email + password** for users after they leave the company.
+- Alumni email must be **different from the company email**.
+- Employees can set up alumni access **before leaving** from within the platform, so they can continue access after their company account is deactivated.
+
+### Access Control
+- What a user can see and do is driven by:
+  - **User status**: Employee / Alumni / Disabled
+  - **User role**: Employee / Academy / Finance
+- Academy can disable a user’s access when needed (misuse/policy).
+
+### Operations Ownership
+- Only a small subset of Academy and Finance users operate the workflows.
+- Each of Academy and Finance has:
+  - a **Primary operator** (main responsible person)
+  - a **Delegate operator** (backup)
+- The platform supports switching Primary/Delegate (e.g., vacation or absence).
+
+### Reminders
+- The platform sends **email reminders** to the **Primary operator** to avoid noisy “notify everyone” 
+
+## 8. Data Schema
+
+This document [docs/data_schema.md](./data_schema.md) defines the data model for the backend.  
+
+## 9. Frontend
+
+[WebAcademy Figma Design](https://stem-pasta-86734200.figma.site/)
